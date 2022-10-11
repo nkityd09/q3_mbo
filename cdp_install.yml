@@ -1,0 +1,78 @@
+---
+
+- name: Setting up all nodes
+  hosts: all
+  become: True
+  tasks:
+    - name: Install a list of packages on all hosts
+      ansible.builtin.yum:
+        name:
+          - java-11-openjdk-devel
+          - openldap*
+          - krb5-workstation
+          - krb5-libs
+        state: present
+    - name: Tune OS on all nodes
+      script: os_tuning.sh
+- name: Setting up CM Server
+  hosts: cm_server
+  become: True
+  tasks:    
+    - name: Copying CM Repo file with playbook
+      become: true 
+      copy:
+        src: cloudera-manager.repo
+        dest: /etc/yum.repos.d/
+    - name: Install a list of packages on CM Hosts
+      ansible.builtin.yum:
+        name:
+          - cloudera-manager-daemons
+          - cloudera-manager-agent
+          - cloudera-manager-server
+          - postgresql10
+          - postgresql10-server
+          - postgresql-contrib
+          - postgresql10-libs
+          - postgresql-jdbc*
+        state: present
+    - name: Initiate Postgres database
+      script: initiate_db.sh
+    - name: Update Postgres conf
+      ansible.builtin.blockinfile:
+        path: /var/lib/pgsql/10/data/postgresql.conf
+        block: |
+          listen_addresses = '*'
+          max_connections = 1000
+          shared_buffers = 256MB
+          wal_buffers = 8MB
+          checkpoint_completion_target = 0.9
+    - name: Update pg_hba conf file
+      ansible.builtin.blockinfile:
+        path: /var/lib/pgsql/10/data/pg_hba.conf
+        insertafter: "# IPv4 local connections:"
+        block: |
+          host    all             all             0.0.0.0/0               md5
+          host    all             all             0.0.0.0/0               ident
+    - name: Initiate Postgres database
+      script: start_pg.sh
+    - name: Pause for Postgres to start
+      ansible.builtin.pause:
+        seconds: 30
+    - name: copying cm_db.sql file to CM host
+      copy:
+        src: cm_db.sql
+        dest: /home
+        owner: postgres
+        group: postgres      
+        mode: 0744
+    - name: Run cm_db.sql file
+      command: psql -f /home/cm_db.sql
+      become: true
+      become_user: postgres
+    - name: Prepare database for Cloudera Manager
+      command: /opt/cloudera/cm/schema/scm_prepare_database.sh postgresql scm scm cloudera
+    - name: Setup Auto TLS
+      script: setup_auto-tls.sh
+    - name: Start Cloudera Manager Server
+      command: systemctl start cloudera-scm-server
+...

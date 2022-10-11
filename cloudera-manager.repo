@@ -1,0 +1,17 @@
+[cloudera-manager]
+name=Cloudera Manager 7.5.4-20668437
+baseurl=https://26f0864c-2413-4e8a-855e-46b1334c7ffb:a9be5bcc72ce@archive.cloudera.com/p/cm7/7.5.4-20668437/redhat7/yum/
+gpgkey=https://26f0864c-2413-4e8a-855e-46b1334c7ffb:a9be5bcc72ce@archive.cloudera.com/p/cm7/7.5.4-20668437/redhat7/yum/RPM-GPG-KEY-cloudera
+gpgcheck=1
+enabled=1
+autorefresh=0
+type=rpm-md
+
+
+[postgresql10]
+name=Postgresql 10
+baseurl=https://archive.cloudera.com/postgresql10/redhat7/
+gpgkey=https://archive.cloudera.com/postgresql10/redhat7/RPM-GPG-KEY-PGDG-10
+enabled=1
+gpgcheck=1
+module_hotfixes=true
